@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cybersecurity Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+</head>
+<body>
+    <div class="dashboard">
+        <header>
+            <h1><i class="fas fa-shield-alt"></i> CyberSecurity Dashboard</h1>
+            <div class="upload-container">
+                <button id="uploadBtn" class="upload-btn">
+                    <i class="fas fa-upload"></i> Upload Log File
+                </button>
+                <input type="file" id="fileInput" accept=".csv" style="display: none;">
+            </div>
+        </header>
+
+        <div class="status-bar">
+            <div class="status-item">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>Threats Detected: <span id="threats-count">37</span></span>
+            </div>
+            <div class="status-item">
+                <i class="fas fa-sync"></i>
+                <span>Last Updated: <span id="last-updated">Just Now</span></span>
+            </div>
+            <div class="status-item">
+                <i class="fas fa-server"></i>
+                <span>Server Status: <span id="server-status" class="status-online">Online</span></span>
+            </div>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="card wide">
+                <div class="card-header">
+                    <h2>Analysis Results</h2>
+                    <div class="card-controls">
+                        <button class="refresh-btn"><i class="fas fa-sync-alt"></i></button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="results-container" id="analysisResults">
+                        <div class="placeholder-text">Upload a log file to see analysis results</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h2>Attack Type Distribution</h2>
+                    <div class="card-controls">
+                        <button class="refresh-btn"><i class="fas fa-sync-alt"></i></button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <canvas id="attackTypeChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2>Failed Login Attempts</h2>
+                    <div class="card-controls">
+                        <button class="refresh-btn"><i class="fas fa-sync-alt"></i></button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <canvas id="failedLoginChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2>Protocol Usage Statistics</h2>
+                    <div class="card-controls">
+                        <button class="refresh-btn"><i class="fas fa-sync-alt"></i></button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <canvas id="protocolChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card wide">
+                <div class="card-header">
+                    <h2>Service Distribution</h2>
+                    <div class="card-controls">
+                        <button class="refresh-btn"><i class="fas fa-sync-alt"></i></button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <canvas id="serviceChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2>Recent Security Events</h2>
+                    <div class="card-controls">
+                        <button class="refresh-btn"><i class="fas fa-sync-alt"></i></button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="events-list" id="securityEvents">
+                        <!-- Placeholder for events, will be filled by JS -->
+                    </div>
+                </div>
+            </div>
+
+            
+        </div>
+
+        <footer>
+            <p>&copy; 2025 Cybersecurity Dashboard | <i class="fas fa-terminal"></i> CyberID</p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

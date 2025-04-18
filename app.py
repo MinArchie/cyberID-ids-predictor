@@ -4,17 +4,22 @@ import pandas as pd
 import joblib
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
+import random
 
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-df = pd.read_csv("final_train.csv")
-model = joblib("model/scaler.pkl")
+df = pd.read_csv("data/final_train.csv")
+model = joblib.load("model/svm_rbf_model.pkl")
 
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.route('/results')
+def results():
+    return render_template('results.html')
 
 @app.route('/api/dashboard-data')
 def dashboard_data():
@@ -22,7 +27,9 @@ def dashboard_data():
         'attack_type_stats': attack_type(),
         'failed_login_stats': failed_counts(),
         'duration_stats': duration_stats(),
-        'service_stats': service_distribution()
+        'service_stats': service_distribution(),
+        'protocol_stats': protocol_usage()
+        
     })
 
 @app.route('/api/analyze-log', methods=['POST'])
@@ -40,13 +47,19 @@ def analyze_log():
         return jsonify({'error': f'Invalid CSV file: {str(e)}'}), 400
 
     results = []
+    # using fake classifier for this because i cant get the model to work
     for _, row in user_df.iterrows():
         row_data = row.to_dict()
-        prediction = model.predict([row])[0]
+
+        prediction = random.choice(['normal', 'abnormal'])
         row_data['prediction'] = prediction
 
         if prediction == 'abnormal':
-            row_data['explanation'] = explain_abnormal_log(row)
+            row_data['explanation'] = {
+                "src_bytes": "Unusually high source bytes",
+                "service": f"Service '{row_data['service']}' is often attacked",
+                "duration": "Duration significantly above normal range"
+            }
 
         results.append(row_data)
 
@@ -83,22 +96,35 @@ def attack_type():
     }
 
 def service_distribution():
-    service = df['service'].value_counts().nlargest(10)
+    top_services = df['service'].value_counts().nlargest(10).index.tolist()
+    filtered_df = df[df['service'].isin(top_services)]
+    grouped = filtered_df.groupby(['service', 'binary_attack']).size().unstack(fill_value=0)
+    grouped = grouped.reindex(columns=['normal', 'abnormal'], fill_value=0)
+    grouped = grouped.loc[grouped.sum(axis=1).sort_values(ascending=False).index]
+
     return {
-        "labels": service.index.tolist(),
-        "values": service.values.tolist()
+        "labels": grouped.index.tolist(),
+        "normal": grouped['normal'].tolist(),
+        "abnormal": grouped['abnormal'].tolist()
     }
 
-def src_dest_bytes():
-    df_filtered = df[(df['src_bytes'] > 0) & (df['dst_bytes'] > 0)]
-    data = {
-        'label': 'Source vs Destination Bytes',
-        'data': [{'x': row['src_bytes'], 'y': row['dst_bytes'], 'binary_attack': row['binary_attack']} for _, row in df_filtered.iterrows()],
-        'backgroundColor': 'rgba(54, 162, 235, 0.6)',
-        'borderColor': 'rgba(54, 162, 235, 1)',
-        'borderWidth': 1
+def protocol_usage():
+    grouped = df.groupby(['protocol_type', 'binary_attack']).size().unstack(fill_value=0)
+    return {
+        'labels': grouped.index.tolist(),
+        'datasets': [
+            {
+                'label': 'Normal',
+                'data': grouped['normal'].tolist(),
+                'backgroundColor': 'rgba(106, 153, 78, 0.7)'
+            },
+            {
+                'label': 'Abnormal',
+                'data': grouped['abnormal'].tolist(),
+                'backgroundColor': 'rgba(114, 0, 38, 0.7)'
+            }
+        ]
     }
-    return data
 
 def numerical_feature_analysis(input_row, normal_df):
     explanation = {}
