@@ -23,7 +23,13 @@
         <div class="status-bar">
             <div class="status-item">
                 <i class="fas fa-exclamation-triangle"></i>
-                <span>Threats Detected: <span id="threats-count">37</span></span>
+                <span>Threats Detected: <span id="threats-count">
+                    {% if results %}
+                        {{ results|selectattr('prediction', 'equalto', 'abnormal')|list|length }}
+                    {% else %}
+                        0
+                    {% endif %}
+                </span></span>
             </div>
             <div class="status-item">
                 <i class="fas fa-sync"></i>
@@ -45,7 +51,30 @@
                 </div>
                 <div class="card-body">
                     <div class="results-container" id="analysisResults">
-                        <div class="placeholder-text">Upload a log file to see analysis results</div>
+                        {% if results %}
+                            {% for result in results %}
+                                <div class="analysis-item {{ result.prediction }}">
+                                    <div class="result-header">
+                                        <strong>Prediction: {{ result.prediction.upper() }}</strong>
+                                    </div>
+                                    <div class="result-details">
+                                        <span>Service: {{ result.service }}</span> |
+                                        <span>Protocol: {{ result.protocol_type }}</span> |
+                                        <span>Duration: {{ result.duration }}ms</span> |
+                                        <span>Failed Logins: {{ result.num_failed_logins }}</span>
+                                    </div>
+                                    {% if result.prediction == 'abnormal' and result.explanation %}
+                                        <div class="explanation-list">
+                                            {% for key, value in result.explanation.items() %}
+                                                <div class="explanation-item">- {{ value }}</div>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="placeholder-text">Upload a log file to see analysis results</div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -119,6 +148,16 @@
             <p>&copy; 2025 Cybersecurity Dashboard | <i class="fas fa-terminal"></i> CyberID</p>
         </footer>
     </div>
+
+    {% if filename %}
+    <script>
+        // Pass the server-side data to client-side JavaScript
+        window.serverData = {
+            filename: "{{ filename }}",
+            hasResults: true
+        };
+    </script>
+    {% endif %}
 
     <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>

@@ -1,14 +1,17 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask import Flask, render_template, request, redirect, url_for, jsonify, session
 import os
 import pandas as pd
 import joblib
-import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 import random
 
 app = Flask(__name__)
+app.secret_key = "your_secure_secret_key_here"
 UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+# Create uploads directory if it doesn't exist
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 df = pd.read_csv("data/final_train.csv")
 model = joblib.load("model/svm_rbf_model.pkl")
@@ -17,9 +20,49 @@ model = joblib.load("model/svm_rbf_model.pkl")
 def index():
     return render_template('index.html')
 
+@app.route('/analyze', methods=['POST'])
+def analyze():
+    if 'logfile' not in request.files:
+        return redirect(url_for('index'))
+        
+    file = request.files['logfile']
+    if file.filename == '':
+        return redirect(url_for('index'))
+        
+    if file:
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+        file.save(file_path)
+
+        session['uploaded_file'] = file.filename  # Save filename to session
+        return redirect(url_for('results'))
+    
+    return redirect(url_for('index'))
+    
 @app.route('/results')
 def results():
-    return render_template('results.html')
+    filename = session.get('uploaded_file', None)
+    if filename:
+        file_path = os.path.join(UPLOAD_FOLDER, filename)
+        try:
+            user_df = pd.read_csv(file_path)
+
+            results = []
+            for _, row in user_df.iterrows():
+                row_data = row.to_dict()
+                prediction = random.choice(['normal', 'abnormal'])
+                row_data['prediction'] = prediction
+
+                if prediction == 'abnormal':
+                    row_data['explanation'] = explain_abnormal_log(row_data)
+
+                results.append(row_data)
+
+            return render_template('results.html', filename=filename, results=results)
+
+        except Exception as e:
+            return f"Error reading file: {e}", 500
+    else:
+        return redirect(url_for('index'))
 
 @app.route('/api/dashboard-data')
 def dashboard_data():
@@ -29,7 +72,6 @@ def dashboard_data():
         'duration_stats': duration_stats(),
         'service_stats': service_distribution(),
         'protocol_stats': protocol_usage()
-        
     })
 
 @app.route('/api/analyze-log', methods=['POST'])

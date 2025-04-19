@@ -29,6 +29,13 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 500);
         });
     });
+
+    // Check if we have server-side data already
+    if (window.serverData && window.serverData.hasResults) {
+        // If we do, we don't need to re-render the results as they're already in the HTML
+        document.getElementById('last-updated').textContent = 'Just Now';
+    }
+    
     fetchDashboardData();
     populateSecurityEvents();
 });
@@ -55,6 +62,7 @@ function uploadLogFile(file) {
         document.getElementById('analysisResults').innerHTML = `<div class="error-text">Error analyzing file.</div>`;
     });
 }
+
 
 function fetchDashboardData() {
     fetch('/api/dashboard-data')
