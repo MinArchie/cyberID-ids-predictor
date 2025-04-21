@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intrusion Detection System</title>
+    <style>
+        :root {
+            --bg-color: #0a0e17;
+            --card-bg: #111722;
+            --text-color: #e0e0e0;
+            --accent-green: #6a994e;
+            --danger-red: #720026;
+            --highlight: #2a3042;
+            --border-color: #2a3042;
+            --success-color: #00d1b2;
+            --warning-color: #ffdd57;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Courier New', monospace;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .navbar {
+            background-color: var(--card-bg);
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar-brand {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--accent-green);
+        }
+
+        .navbar-icon {
+            font-size: 1.2rem;
+            color: var(--text-color);
+        }
+
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .hero-section {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 3rem;
+        }
+
+        .hero-content {
+            flex: 1;
+            min-width: 300px;
+            padding-right: 2rem;
+        }
+
+        .hero-image {
+            flex: 1;
+            min-width: 300px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .hero-image svg {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .hero-content-title {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: var(--accent-green);
+        }
+
+        .hero-content-subtitle {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            width: 100%;
+            margin-bottom: 3rem;
+        }
+
+        .feature-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            transition: transform 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .feature-card-icon {
+            font-size: 2rem;
+            color: var(--accent-green);
+            margin-bottom: 1rem;
+        }
+
+        .feature-card-title {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: var(--text-color);
+        }
+
+        .feature-card-description {
+            line-height: 1.6;
+        }
+
+        .login-container {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 2rem;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .login-heading {
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            color: var(--accent-green);
+        }
+
+        .login-form {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background-color: var(--highlight);
+            color: var(--text-color);
+            font-family: 'Courier New', monospace;
+        }
+
+        .form-button {
+            padding: 0.75rem 1.5rem;
+            background-color: var(--accent-green);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1rem;
+            transition: background-color 0.3s ease;
+        }
+
+        .form-button:hover {
+            background-color: #5a8941;
+        }
+
+        .file-input-container {
+            position: relative;
+            width: 100%;
+            height: 200px;
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            transition: border-color 0.3s ease;
+            cursor: pointer;
+        }
+
+        .file-input-container:hover {
+            border-color: var(--accent-green);
+        }
+
+        .file-input {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .file-input-icon {
+            font-size: 3rem;
+            color: var(--accent-green);
+            margin-bottom: 1rem;
+        }
+
+        .file-input-text {
+            font-size: 1.2rem;
+            text-align: center;
+        }
+
+        .file-name {
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            color: var(--success-color);
+        }
+
+        .terminal-container {
+            background-color: #000;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 2rem;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+        }
+
+        .terminal-text {
+            color: var(--accent-green);
+        }
+
+        .footer {
+            background-color: var(--card-bg);
+            padding: 1.5rem;
+            text-align: center;
+            margin-top: auto;
+        }
+
+        @media (max-width: 768px) {
+
+            .hero-content,
+            .hero-image {
+                flex: 100%;
+                padding-right: 0;
+                margin-bottom: 2rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand">CyberID</div>
+        <div class="navbar-icon">⚡</div>
+    </nav>
+
+    <main class="main-container">
+        <section class="hero-section">
+            <div class="hero-content">
+                <h1 class="hero-content-title">Advanced Intrusion Detection System</h1>
+                <p class="hero-content-subtitle">
+                    Our cutting-edge system leverages machine learning algorithms (SVM & Random Forest)
+                    to accurately classify normal network activities from potential security threats.
+                    With sophisticated data preprocessing and feature scaling, we provide reliable
+                    intrusion detection to keep your network safe.
+                </p>
+            </div>
+            <div class="hero-image">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 450 320" width="500" height="360">
+                    <!-- Computer + Lock Security Illustration -->
+                    <defs>
+                        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                            <feGaussianBlur stdDeviation="5" result="blur" />
+                            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                        </filter>
+                    </defs>
+
+                    <!-- Computer -->
+                    <g id="computer">
+                        <!-- Monitor -->
+                        <rect x="110" y="70" width="180" height="120" rx="5" fill="#111722" stroke="#e0e0e0"
+                            stroke-width="2" />
+                        <!-- Monitor Stand -->
+                        <path d="M175,190 L225,190 L215,210 L185,210 Z" fill="#111722" stroke="#e0e0e0"
+                            stroke-width="2" />
+                        <!-- Base -->
+                        <rect x="170" y="210" width="60" height="10" rx="2" fill="#111722" stroke="#e0e0e0"
+                            stroke-width="2" />
+                        <!-- Screen -->
+                        <rect x="120" y="80" width="160" height="100" rx="2" fill="#0a0e17" stroke="#2a3042"
+                            stroke-width="1" />
+
+                        <!-- Screen Content: Data Grid -->
+                        <g stroke="#6a994e" stroke-width="0.5" opacity="0.6">
+                            <line x1="130" y1="90" x2="270" y2="90" />
+                            <line x1="130" y1="100" x2="270" y2="100" />
+                            <line x1="130" y1="110" x2="270" y2="110" />
+                            <line x1="130" y1="120" x2="270" y2="120" />
+                            <line x1="130" y1="130" x2="270" y2="130" />
+                            <line x1="130" y1="140" x2="270" y2="140" />
+                            <line x1="130" y1="150" x2="270" y2="150" />
+                            <line x1="130" y1="160" x2="270" y2="160" />
+                            <line x1="130" y1="170" x2="270" y2="170" />
+
+                            <line x1="130" y1="90" x2="130" y2="170" />
+                            <line x1="150" y1="90" x2="150" y2="170" />
+                            <line x1="170" y1="90" x2="170" y2="170" />
+                            <line x1="190" y1="90" x2="190" y2="170" />
+                            <line x1="210" y1="90" x2="210" y2="170" />
+                            <line x1="230" y1="90" x2="230" y2="170" />
+                            <line x1="250" y1="90" x2="250" y2="170" />
+                            <line x1="270" y1="90" x2="270" y2="170" />
+                        </g>
+
+                        <!-- Scan Line Animation -->
+                        <rect x="120" y="90" width="160" height="2" fill="#6a994e" opacity="0.5">
+                            <animate attributeName="y" values="90;170;90" dur="5s" repeatCount="indefinite" />
+                        </rect>
+
+                        <!-- Data Points -->
+                        <circle cx="150" cy="100" r="2" fill="#00d1b2" />
+                        <circle cx="190" cy="110" r="2" fill="#00d1b2" />
+                        <circle cx="230" cy="100" r="2" fill="#00d1b2" />
+                        <circle cx="170" cy="130" r="2" fill="#00d1b2" />
+                        <circle cx="250" cy="140" r="2" fill="#00d1b2" />
+                        <circle cx="170" cy="160" r="2" fill="#00d1b2" />
+
+                        <!-- Threat Points -->
+                        <circle cx="210" cy="120" r="3" fill="#720026">
+                            <animate attributeName="r" values="3;4;3" dur="1s" repeatCount="indefinite" />
+                        </circle>
+                        <circle cx="130" cy="150" r="3" fill="#720026">
+                            <animate attributeName="r" values="3;4;3" dur="1s" repeatCount="indefinite" />
+                        </circle>
+                    </g>
+
+                    <!-- Central Lock -->
+                    <g id="lock" transform="translate(330, 130)">
+                        <!-- Lock Body -->
+                        <rect x="-30" y="0" width="60" height="60" rx="5" fill="#111722" stroke="#6a994e"
+                            stroke-width="3" />
+                        <!-- Lock Shackle -->
+                        <path d="M-15,0 L-15,-25 A15,15 0 0,1 15,-25 L15,0" fill="none" stroke="#6a994e"
+                            stroke-width="4" stroke-linecap="round" />
+                        <!-- Keyhole -->
+                        <circle cx="0" cy="30" r="8" fill="#0a0e17" />
+                        <line x1="0" y1="30" x2="0" y2="40" stroke="#0a0e17" stroke-width="3" />
+
+                        <!-- Security Pulse Animation -->
+                        <circle cx="0" cy="30" r="20" fill="none" stroke="#6a994e" stroke-width="2" opacity="0">
+                            <animate attributeName="r" values="20;40;20" dur="3s" repeatCount="indefinite" />
+                            <animate attributeName="opacity" values="0.7;0;0.7" dur="3s" repeatCount="indefinite" />
+                        </circle>
+                    </g>
+
+                    <!-- Connection Lines & Data Flow -->
+                    <g id="connections">
+                        <!-- Computer to Lock Connection -->
+                        <path d="M260,130 C290,130 290,130 320,130" fill="none" stroke="#e0e0e0" stroke-width="2" />
+
+                        <!-- Data Packets Animation -->
+                        <circle cx="270" cy="130" r="3" fill="#6a994e">
+                            <animate attributeName="cx" values="270;315;270" dur="2s" repeatCount="indefinite" />
+                        </circle>
+                        <circle cx="290" cy="130" r="3" fill="#6a994e">
+                            <animate attributeName="cx" values="290;335;290" dur="3s" repeatCount="indefinite" />
+                        </circle>
+
+                        <!-- Threat Packet -->
+                        <circle cx="280" cy="130" r="4" fill="#720026">
+                            <animate attributeName="cx" values="280;310;280" dur="6s" repeatCount="indefinite" />
+                            <animate attributeName="opacity" values="1;0;1" dur="6s" repeatCount="indefinite" />
+                        </circle>
+                    </g>
+
+                    <!-- Shield Effect around Lock -->
+                    <path id="shield" d="M330,130 L380,100 L380,200 L330,170 L280,200 L280,100 Z" fill="none"
+                        stroke="#6a994e" stroke-width="1" stroke-dasharray="5,5" opacity="0.6" />
+
+                    <!-- Binary Code Background -->
+                    <g font-family="monospace" font-size="8" fill="#6a994e" opacity="0.4">
+                        <text x="90" y="55">01001101 10110010</text>
+                        <text x="120" y="235">11010110 00101101</text>
+                        <text x="330" y="60">10010110 01101001</text>
+                        <text x="340" y="235">00101101 11010110</text>
+                    </g>
+
+                    <!-- ML Classification Indicators -->
+                    <g>
+                        <!-- Normal Traffic Label -->
+                        <rect x="110" y="40" width="80" height="20" rx="5" fill="#111722" stroke="#00d1b2"
+                            stroke-width="1" />
+                        <text x="120" y="55" font-family="monospace" font-size="12" fill="#00d1b2">NORMAL</text>
+
+                        <!-- Threat Detection -->
+                        <rect x="300" y="40" width="80" height="20" rx="5" fill="#111722" stroke="#720026"
+                            stroke-width="1">
+                            <animate attributeName="stroke-width" values="1;2;1" dur="2s" repeatCount="indefinite" />
+                        </rect>
+                        <text x="310" y="55" font-family="monospace" font-size="12" fill="#720026">THREAT</text>
+
+                        <!-- Scanning Status -->
+                        <rect x="200" y="240" width="140" height="20" rx="5" fill="#111722" stroke="#6a994e"
+                            stroke-width="1" />
+                        <text x="210" y="255" font-family="monospace" font-size="12" fill="#6a994e">SCANNING...</text>
+                    </g>
+
+                    <!-- Alert Effect on Threat Detection -->
+                    <rect x="300" y="40" width="80" height="20" rx="5" fill="none" stroke="#720026" stroke-width="1"
+                        filter="url(#glow)">
+                        <animate attributeName="opacity" values="0;0.5;0" dur="2s" repeatCount="indefinite" />
+                    </rect>
+
+                    <!-- ML Detection Beams -->
+                    <g>
+                        <!-- Detection Beam -->
+                        <line x1="210" y1="120" x2="330" y2="130" stroke="#720026" stroke-width="1"
+                            stroke-dasharray="3,3">
+                            <animate attributeName="stroke-width" values="1;2;1" dur="1s" repeatCount="indefinite" />
+                        </line>
+                        <line x1="130" y1="150" x2="330" y2="130" stroke="#720026" stroke-width="1"
+                            stroke-dasharray="3,3">
+                            <animate attributeName="stroke-width" values="1;2;1" dur="1s" repeatCount="indefinite"
+                                begin="0.5s" />
+                        </line>
+                    </g>
+
+                    <!-- Shield Animation -->
+                    <g>
+                        <path d="M330,130 L350,115 L350,145 L330,160 L310,145 L310,115 Z" fill="none" stroke="#6a994e"
+                            stroke-width="1" opacity="0.3">
+                            <animate attributeName="opacity" values="0.3;0.7;0.3" dur="4s" repeatCount="indefinite" />
+                        </path>
+                    </g>
+                </svg>
+            </div>
+        </section>
+
+        <section class="feature-grid">
+            <div class="feature-card">
+                <div class="feature-card-icon">🛡️</div>
+                <h2 class="feature-card-title">Real-Time Detection</h2>
+                <p class="feature-card-description">
+                    Our system continuously monitors network traffic patterns and
+                    identifies suspicious activities in real-time.
+                </p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-card-icon">🧠</div>
+                <h2 class="feature-card-title">ML-Powered</h2>
+                <p class="feature-card-description">
+                    Using Support Vector Machines and Random Forest algorithms to
+                    achieve high accuracy in threat detection.
+                </p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-card-icon">📊</div>
+                <h2 class="feature-card-title">Advanced Analytics</h2>
+                <p class="feature-card-description">
+                    Comprehensive data preprocessing, scaling, and outlier management
+                    for reliable intrusion detection.
+                </p>
+            </div>
+        </section>
+
+        <div class="login-container">
+            <h2 class="login-heading">Upload Network Log File</h2>
+            <form class="login-form" id="logUploadForm" action="analyze" method="POST" enctype="multipart/form-data">
+                <div class="file-input-container">
+                    <input type="file" class="file-input" id="logfile" name="logfile" accept=".log,.txt,.csv">
+                    <div class="file-input-icon">📁</div>
+                    <div class="file-input-text">Drag & drop your log file here or click to browse</div>
+                    <div class="file-name" id="fileName"></div>
+                </div>
+
+                <div class="form-group">
+                    <button type="submit" class="form-button">Analyze Network Traffic</button>
+                </div>
+            </form>
+
+            <div class="terminal-container">
+                <div class="terminal-text" id="terminal">
+                    > System ready for intrusion detection analysis
+                    > Upload a log file to begin...
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <p>CyberID &copy; 2025 | Advanced Intrusion Detection System</p>
+    </footer>
+    <script>
+        document.getElementById('logfile').addEventListener('change', function (e) {
+            const fileName = e.target.files[0] ? e.target.files[0].name : '';
+            document.getElementById('fileName').textContent = fileName ? `Selected: ${fileName}` : '';
+        });
+
+        document.getElementById('logUploadForm').addEventListener('submit', function (e) {
+            const file = document.getElementById('logfile').files[0];
+            const terminal = document.getElementById('terminal');
+
+            if (!file) {
+                e.preventDefault();
+                terminal.innerHTML += '\n> Error: No file selected. Please upload a log file.';
+                return;
+            }
+
+            terminal.innerHTML += `\n> File "${file.name}" received...`;
+            terminal.innerHTML += `\n> Processing log data...`;
+            terminal.innerHTML += `\n> Applying feature scaling...`;
+            terminal.innerHTML += `\n> Running ML prediction models (SVM, RF)...`;
+        });
+    </script>
+
+</body>
+
+</html>
