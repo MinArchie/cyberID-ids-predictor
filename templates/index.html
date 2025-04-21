@@ -498,6 +498,11 @@
                     <div class="file-input-text">Drag & drop your log file here or click to browse</div>
                     <div class="file-name" id="fileName"></div>
                 </div>
+                <label for="model_choice">Choose a model:</label>
+                <select name="model_choice" id="model_choice" required>
+                    <option value="ml">Machine Learning (SVM)</option>
+                    <option value="dl">Deep Learning (Neural Net)</option>
+                </select>
 
                 <div class="form-group">
                     <button type="submit" class="form-button">Analyze Network Traffic</button>
@@ -533,7 +538,7 @@
             terminal.innerHTML += `\n> File "${file.name}" received...`;
             terminal.innerHTML += `\n> Processing log data...`;
             terminal.innerHTML += `\n> Applying feature scaling...`;
-            terminal.innerHTML += `\n> Running ML prediction models (SVM, RF)...`;
+            terminal.innerHTML += `\n> Running ML prediction models (SVM, DL)...`;
         });
     </script>
 

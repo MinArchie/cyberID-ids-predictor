@@ -1,29 +1,50 @@
 """Flask app for analyzing network log files and displaying intrusion detection results."""
 
 import os
-import random
-
 import pandas as pd
 import joblib
 from flask import Flask, render_template, request, redirect, url_for, jsonify, session
 from sklearn.preprocessing import MinMaxScaler
+import torch
+from torch import nn
 
 app = Flask(__name__)
 app.secret_key = "your_secure_secret_key_here"
 UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-# Create uploads directory if it doesn't exist
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 df = pd.DataFrame()
 og_df = pd.read_csv("data/final_train.csv")
-model = joblib.load("model/svm_rbf_kdd_model.pkl")
+model_ml = joblib.load("model/svm_rbf_kdd_model.pkl")
+
+
+class IntrusionNet(nn.Module):
+    """Neural network for intrusion detection."""
+
+    def __init__(self, input_dim):
+        super().__init__()
+        self.model = nn.Sequential(
+            nn.Linear(input_dim, 128),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(64, 1),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        return self.model(x)
+
 
 @app.route('/')
 def index():
     """Render the homepage."""
     return render_template('index.html')
+
 
 @app.route('/analyze', methods=['POST'])
 def analyze():
@@ -32,55 +53,107 @@ def analyze():
         return redirect(url_for('index'))
 
     file = request.files['logfile']
+    model_choice = request.form.get('model_choice')
+
     if file.filename == '':
         return redirect(url_for('index'))
 
-    if file:
+    if file and model_choice:
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
         file.save(file_path)
         session['uploaded_file'] = file.filename
+        session['model_choice'] = model_choice
         return redirect(url_for('results'))
 
     return redirect(url_for('index'))
 
+
 @app.route('/results')
 def results():
     """Display prediction results for uploaded file."""
+    filename = session.get('uploaded_file')
+    model_choice = session.get('model_choice')
+
+    if not filename or not model_choice:
+        return redirect(url_for('index'))
+
+    file_path = os.path.join(UPLOAD_FOLDER, filename)
+    try:
+        if model_choice == 'ml':
+            return handle_ml_model(file_path, filename)
+        if model_choice == 'dl':
+            return handle_dl_model(file_path, filename)
+
+        return redirect(url_for('index'))
+    except ValueError as val_err:
+        return f"Value Error: {val_err}", 500
+    except FileNotFoundError as fnf_err:
+        return f"File not found: {fnf_err}", 404
+    except Exception as exc:
+        return f"Unexpected error: {exc}", 500
+
+
+def handle_ml_model(file_path, filename):
+    """Handle prediction using ML model."""
     global df
-    filename = session.get('uploaded_file', None)
-    if filename:
-        file_path = os.path.join(UPLOAD_FOLDER, filename)
-        try:
-            df = pd.DataFrame()
-            user_df = pd.read_csv(file_path)
+    df = pd.DataFrame()
+    user_df = pd.read_csv(file_path)
 
-            features_to_use = og_df.drop(columns=['binary_attack', 'level'], errors='ignore').columns.tolist()
-            user_df_filtered = user_df[features_to_use].copy()
-            model_input = user_df_filtered
-            predictions = model.predict(model_input)
-            print(predictions)
+    features_to_use = og_df.drop(columns=['binary_attack', 'level'], errors='ignore').columns.tolist()
+    user_df_filtered = user_df[features_to_use].copy()
+    predictions = model_ml.predict(user_df_filtered)
 
-            all_results = []
-            for idx, row in user_df.iterrows():
-                row_data = row.to_dict()
-                label = 'abnormal' if predictions[idx] == 'abnormal' else 'normal'
-                row_data['binary_attack'] = label
+    all_results = []
+    for idx, row in user_df.iterrows():
+        row_data = row.to_dict()
+        label = 'abnormal' if predictions[idx] == 'abnormal' else 'normal'
+        row_data['binary_attack'] = label
 
-                if label == 'abnormal':
-                    row_data['explanation'] = explain_abnormal_log(row)
+        if label == 'abnormal':
+            row_data['explanation'] = explain_abnormal_log(row)
 
-                all_results.append(row_data)
+        all_results.append(row_data)
 
-            df = pd.DataFrame(all_results)
-            print(df)
-            return render_template('results.html', filename=filename, results=all_results)
-
-        except Exception as e:
-            return f"Error reading or processing file: {e}", 500
-
-    return redirect(url_for('index'))
+    df = pd.DataFrame(all_results)
+    return render_template('results.html', filename=filename, results=all_results)
 
 
+def handle_dl_model(file_path, filename):
+    """Handle prediction using DL model."""
+    global df
+    df = pd.DataFrame()
+    user_df = pd.read_csv(file_path)
+
+    features_to_use = og_df.drop(columns=['binary_attack', 'level'], errors='ignore').columns.tolist()
+    user_df_filtered = user_df[features_to_use].copy()
+
+    preprocessor = joblib.load("model/dl_preprocessor.pkl")
+    x_log_processed = preprocessor.transform(user_df_filtered)
+    x_log_tensor = torch.tensor(
+        x_log_processed.toarray() if hasattr(x_log_processed, "toarray") else x_log_processed,
+        dtype=torch.float32
+    )
+
+    model = IntrusionNet(input_dim=x_log_tensor.shape[1])
+    model.load_state_dict(torch.load("model/intrusion_net.pth"))
+    model.eval()
+
+    with torch.no_grad():
+        predictions = model(x_log_tensor).squeeze()
+        predicted_labels = (predictions >= 0.5).int().numpy()
+        mapped_labels = ["abnormal" if p == 1 else "normal" for p in predicted_labels]
+
+    user_df['binary_attack'] = mapped_labels
+
+    all_results = []
+    for idx, row in user_df.iterrows():
+        row_data = row.to_dict()
+        if row_data['binary_attack'] == 'abnormal':
+            row_data['explanation'] = explain_abnormal_log(row)
+        all_results.append(row_data)
+
+    df = pd.DataFrame(all_results)
+    return render_template('results.html', filename=filename, results=all_results)
 
 
 @app.route('/api/dashboard-data')
@@ -94,37 +167,6 @@ def dashboard_data():
         'protocol_stats': protocol_usage()
     })
 
-# @app.route('/api/analyze-log', methods=['POST'])
-# def analyze_log():
-#     """API endpoint for analyzing log file via POST."""
-#     if 'file' not in request.files:
-#         return jsonify({'error': 'No file uploaded'}), 400
-
-#     file = request.files['file']
-#     if file.filename == '':
-#         return jsonify({'error': 'Empty filename'}), 400
-
-#     try:
-#         user_df = pd.read_csv(file)
-#     except Exception as e:
-#         return jsonify({'error': f'Invalid CSV file: {str(e)}'}), 400
-
-#     api_results = []
-#     for _, row in user_df.iterrows():
-#         row_data = row.to_dict()
-#         prediction = random.choice(['normal', 'abnormal'])
-#         row_data['prediction'] = prediction
-
-#         if prediction == 'abnormal':
-#             row_data['explanation'] = {
-#                 "src_bytes": "Unusually high source bytes",
-#                 "service": f"Service '{row_data['service']}' is often attacked",
-#                 "duration": "Duration significantly above normal range"
-#             }
-
-#         api_results.append(row_data)
-
-#     return jsonify(api_results)
 
 # ============================
 # Helper functions
@@ -134,10 +176,8 @@ def failed_counts():
     """Calculate percentage of failed login attempts for each attack class."""
     counts = df.groupby('binary_attack')['num_failed_logins'].count()
     percent = (counts / counts.sum()) * 100
-    return {
-        "labels": percent.index.tolist(),
-        "data": percent.values.tolist()
-    }
+    return {"labels": percent.index.tolist(), "data": percent.values.tolist()}
+
 
 def duration_stats():
     """Return normalized duration statistics by attack type."""
@@ -145,19 +185,15 @@ def duration_stats():
     df_copy = df.copy()
     df_copy['duration_scaled'] = scaler.fit_transform(df[['duration']])
     duration = df_copy.groupby('binary_attack')['duration_scaled'].mean()
-    return {
-        "labels": duration.index.tolist(),
-        "data": duration.values.tolist()
-    }
+    return {"labels": duration.index.tolist(), "data": duration.values.tolist()}
+
 
 def attack_type():
     """Return percentage of each attack type."""
     abnormal = df['binary_attack'].value_counts()
     abnormal_percent = ((abnormal / abnormal.sum()) * 100)
-    return {
-        "labels": abnormal_percent.index.tolist(),
-        "data": abnormal_percent.values.tolist()
-    }
+    return {"labels": abnormal_percent.index.tolist(), "data": abnormal_percent.values.tolist()}
+
 
 def service_distribution():
     """Return top 10 services and their distribution by attack type."""
@@ -171,6 +207,7 @@ def service_distribution():
         "normal": grouped['normal'].tolist(),
         "abnormal": grouped['abnormal'].tolist()
     }
+
 
 def protocol_usage():
     """Return protocol usage statistics split by attack type."""
@@ -191,6 +228,7 @@ def protocol_usage():
         ]
     }
 
+
 def numerical_feature_analysis(input_row, normal_df):
     """Analyze numerical features for anomalies."""
     explanation = {}
@@ -202,6 +240,7 @@ def numerical_feature_analysis(input_row, normal_df):
         if abs(z) > 2:
             explanation[col] = f"Value {val} is {z:.2f} std deviations from normal (mean: {mean:.2f})"
     return explanation
+
 
 def rare_categorical_analysis(input_row, normal_df, abnormal_df):
     """Analyze rare values in categorical features."""
@@ -218,6 +257,7 @@ def rare_categorical_analysis(input_row, normal_df, abnormal_df):
             )
     return explanation
 
+
 def threshold_flags(input_row):
     """Flag specific fields crossing thresholds."""
     explanation = {}
@@ -228,6 +268,7 @@ def threshold_flags(input_row):
     if 'rerror_rate' in input_row and input_row['rerror_rate'] > 0.5:
         explanation['rerror_rate'] = "High remote error rate"
     return explanation
+
 
 def explain_abnormal_log(input_row):
     """Combine all abnormal explanation analyses for a log entry."""
@@ -240,6 +281,7 @@ def explain_abnormal_log(input_row):
     explanations.update(threshold_flags(input_row))
 
     return explanations
+
 
 if __name__ == '__main__':
     app.run(debug=True)
