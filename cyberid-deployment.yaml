@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cyberid-app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: cyberid-app
+  template:
+    metadata:
+      labels:
+        app: cyberid-app
+    spec:
+      containers:
+        - name: cyberid-container
+          image: nginx:latest
+          ports:
+            - containerPort: 80
