@@ -343,7 +343,7 @@ function displayAnalysisResults(results) {
     results.forEach(result => {
         const resultElement = document.createElement('div');
         resultElement.className = `analysis-item ${result.prediction}`;
-
+        console.log(result)
         let html = `<div class="result-header">
             <strong>Prediction: ${result.prediction.toUpperCase()}</strong>
         </div>

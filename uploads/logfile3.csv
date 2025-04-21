@@ -1,0 +1,9 @@
+duration,protocol_type,service,flag,src_bytes,dst_bytes,land,wrong_fragment,urgent,hot,num_failed_logins,logged_in,num_compromised,root_shell,su_attempted,num_root,num_file_creations,num_shells,num_access_files,num_outbound_cmds,is_host_login,is_guest_login,count,srv_count,serror_rate,srv_serror_rate,rerror_rate,srv_rerror_rate,same_srv_rate,diff_srv_rate,srv_diff_host_rate,dst_host_count,dst_host_srv_count,dst_host_same_srv_rate,dst_host_diff_srv_rate,dst_host_same_src_port_rate,dst_host_srv_diff_host_rate,dst_host_serror_rate,dst_host_srv_serror_rate,dst_host_rerror_rate,dst_host_srv_rerror_rate
+0,tcp,private,SF,181,5450,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,2,2,0,0,0,0,1,0,0,1,254,0.99,0.01,0.05,0,0,0,0,0
+6000,tcp,eco_i,SF,10000,200000,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,20,0,0,0,0,1,0,0,255,254,0.99,0.01,0.05,0,0,0,0,0
+300,tcp,private,SF,1500,3000,0,0,0,0,2,1,0,0,0,0,0,0,0,0,0,0,15,15,0,0,0.8,0.8,1,0,0,100,20,0.8,0.2,0.1,0.3,0,0,0.7,0.7
+8500,udp,shell,SF,20000,100,0,0,0,1,1,1,2,1,1,3,2,1,1,0,0,0,30,5,0.6,0.4,0.7,0.5,0.2,0.8,0.4,50,10,0.2,0.8,0.3,0.5,0.4,0.3,0.6,0.5
+250,icmp,eco_i,REJ,350,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,100,50,0.9,0.8,0.9,0.8,0.5,0.5,0.1,20,50,0.5,0.5,0.4,0.2,0.7,0.7,0.8,0.8
+890,tcp,ftp,RSTO,100,1200,0,0,0,0,3,0,0,0,0,0,0,0,0,0,0,1,245,30,0.3,0.3,0.6,0.6,0.7,0.3,0.2,150,10,0.67,0.33,0.2,0.1,0.2,0.2,0.5,0.5
+2,icmp,ecr_i,SF,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,123,20,0.1,0.05,0.7,0.3,0.2,0.8,0.05,20,10,0.5,0.5,0.5,0.5,0.1,0.1,0.9,0
+13,tcp,ecr_i,SF,200,2500,0,0,0,0,6,1,1,0,0,1,0,0,0,0,0,0,5,5,0,0,0.5,0.5,1,0,0,200,200,1,0,0.05,0,0,0,0.4,0.4

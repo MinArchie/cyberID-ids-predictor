@@ -17,7 +17,7 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 df = pd.read_csv("data/final_train.csv")
-model = joblib.load("model/svm_rbf_model.pkl")
+model = joblib.load("model/svm_rbf_kdd_model.pkl")
 
 @app.route('/')
 def index():
@@ -51,22 +51,37 @@ def results():
         try:
             user_df = pd.read_csv(file_path)
 
-            all_results = []
-            for _, row in user_df.iterrows():
-                row_data = row.to_dict()
-                prediction = random.choice(['normal', 'abnormal'])
-                row_data['prediction'] = prediction
+            features_to_use = df.drop(columns=['binary_attack', 'level']).columns.tolist()
+            user_df_filtered = user_df[features_to_use].copy()
+            model_input = user_df_filtered
+            predictions = model.predict(model_input)
+            for index, row in user_df_filtered.iterrows():
+                if row['num_failed_logins'] >= 2:
+                    predictions[index]= 'abnormal'
+                else:
+                    predictions[index] = 'normal'
+            print(predictions)
 
-                if prediction == 'abnormal':
-                    row_data['explanation'] = explain_abnormal_log(row_data)
+            all_results = []
+            for idx, row in user_df.iterrows():
+                row_data = row.to_dict()
+                label = 'abnormal' if predictions[idx] == 'abnormal' else 'normal'
+                row_data['prediction'] = label
+
+                if label == 'abnormal':
+                    row_data['explanation'] = explain_abnormal_log(row)
 
                 all_results.append(row_data)
 
             return render_template('results.html', filename=filename, results=all_results)
 
         except Exception as e:
-            return f"Error reading file: {e}", 500
+            return f"Error reading or processing file: {e}", 500
+
     return redirect(url_for('index'))
+
+
+
 
 @app.route('/api/dashboard-data')
 def dashboard_data():
@@ -206,7 +221,7 @@ def rare_categorical_analysis(input_row, normal_df, abnormal_df):
 def threshold_flags(input_row):
     """Flag specific fields crossing thresholds."""
     explanation = {}
-    if input_row['num_failed_logins'] > 3:
+    if input_row['num_failed_logins'] > 2:
         explanation['num_failed_logins'] = "Failed login count exceeds threshold"
     if input_row['duration'] > 5000:
         explanation['duration'] = "Duration unusually long"
