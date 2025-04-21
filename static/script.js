@@ -336,16 +336,16 @@ function populateSecurityEvents() {
 
 function displayAnalysisResults(results) {
     const resultsContainer = document.getElementById('analysisResults');
-    const threatCount = results.filter(r => r.prediction === 'abnormal').length;
+    const threatCount = results.filter(r => r.binary_attack === 'abnormal').length;
     document.getElementById('threats-count').textContent = threatCount.toString();
 
     resultsContainer.innerHTML = '';
     results.forEach(result => {
         const resultElement = document.createElement('div');
-        resultElement.className = `analysis-item ${result.prediction}`;
+        resultElement.className = `analysis-item ${result.binary_attack}`;
         console.log(result)
         let html = `<div class="result-header">
-            <strong>Prediction: ${result.prediction.toUpperCase()}</strong>
+            <strong>Prediction: ${result.binary_attack.toUpperCase()}</strong>
         </div>
         <div class="result-details">
             <span>Service: ${result.service}</span> |
@@ -354,7 +354,7 @@ function displayAnalysisResults(results) {
             <span>Failed Logins: ${result.num_failed_logins}</span>
         </div>`;
 
-        if (result.prediction === 'abnormal' && result.explanation) {
+        if (result.binary_attack === 'abnormal' && result.explanation) {
             html += `<div class="explanation-list">`;
             for (const [key, value] of Object.entries(result.explanation)) {
                 html += `<div class="explanation-item">- ${value}</div>`;

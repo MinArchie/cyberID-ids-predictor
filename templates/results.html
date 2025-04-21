@@ -25,7 +25,7 @@
                 <i class="fas fa-exclamation-triangle"></i>
                 <span>Threats Detected: <span id="threats-count">
                     {% if results %}
-                        {{ results|selectattr('prediction', 'equalto', 'abnormal')|list|length }}
+                        {{ results|selectattr('binary_attack', 'equalto', 'abnormal')|list|length }}
                     {% else %}
                         0
                     {% endif %}
@@ -53,9 +53,9 @@
                     <div class="results-container" id="analysisResults">
                         {% if results %}
                             {% for result in results %}
-                                <div class="analysis-item {{ result.prediction }}">
+                                <div class="analysis-item {{ result.binary_attack }}">
                                     <div class="result-header">
-                                        <strong>Prediction: {{ result.prediction.upper() }}</strong>
+                                        <strong>Prediction: {{ result.binary_attack.upper() }}</strong>
                                     </div>
                                     <div class="result-details">
                                         <span>Service: {{ result.service }}</span> |
@@ -63,7 +63,7 @@
                                         <span>Duration: {{ result.duration }}ms</span> |
                                         <span>Failed Logins: {{ result.num_failed_logins }}</span>
                                     </div>
-                                    {% if result.prediction == 'abnormal' and result.explanation %}
+                                    {% if result.binary_attack == 'abnormal' and result.explanation %}
                                         <div class="explanation-list">
                                             {% for key, value in result.explanation.items() %}
                                                 <div class="explanation-item">- {{ value }}</div>
@@ -82,7 +82,6 @@
             <div class="card">
                 <div class="card-header">
                     <h2>Attack Type Distribution</h2><br>
-                    <h3>General Statistics of KDD Dataset</h3>
                     <div class="card-controls">
                         <button class="refresh-btn"><i class="fas fa-sync-alt"></i></button>
                     </div>
@@ -118,7 +117,7 @@
 
             <div class="card wide">
                 <div class="card-header">
-                    <h2>Service Distribution</h2>
+                    <h2>Service Distribution (With Respect to Original Dataset)</h2>
                     <div class="card-controls">
                         <button class="refresh-btn"><i class="fas fa-sync-alt"></i></button>
                     </div>

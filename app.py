@@ -16,7 +16,8 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 # Create uploads directory if it doesn't exist
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-df = pd.read_csv("data/final_train.csv")
+df = pd.DataFrame()
+og_df = pd.read_csv("data/final_train.csv")
 model = joblib.load("model/svm_rbf_kdd_model.pkl")
 
 @app.route('/')
@@ -45,34 +46,33 @@ def analyze():
 @app.route('/results')
 def results():
     """Display prediction results for uploaded file."""
+    global df
     filename = session.get('uploaded_file', None)
     if filename:
         file_path = os.path.join(UPLOAD_FOLDER, filename)
         try:
+            df = pd.DataFrame()
             user_df = pd.read_csv(file_path)
 
-            features_to_use = df.drop(columns=['binary_attack', 'level']).columns.tolist()
+            features_to_use = og_df.drop(columns=['binary_attack', 'level'], errors='ignore').columns.tolist()
             user_df_filtered = user_df[features_to_use].copy()
             model_input = user_df_filtered
             predictions = model.predict(model_input)
-            for index, row in user_df_filtered.iterrows():
-                if row['num_failed_logins'] >= 2:
-                    predictions[index]= 'abnormal'
-                else:
-                    predictions[index] = 'normal'
             print(predictions)
 
             all_results = []
             for idx, row in user_df.iterrows():
                 row_data = row.to_dict()
                 label = 'abnormal' if predictions[idx] == 'abnormal' else 'normal'
-                row_data['prediction'] = label
+                row_data['binary_attack'] = label
 
                 if label == 'abnormal':
                     row_data['explanation'] = explain_abnormal_log(row)
 
                 all_results.append(row_data)
 
+            df = pd.DataFrame(all_results)
+            print(df)
             return render_template('results.html', filename=filename, results=all_results)
 
         except Exception as e:
@@ -94,37 +94,37 @@ def dashboard_data():
         'protocol_stats': protocol_usage()
     })
 
-@app.route('/api/analyze-log', methods=['POST'])
-def analyze_log():
-    """API endpoint for analyzing log file via POST."""
-    if 'file' not in request.files:
-        return jsonify({'error': 'No file uploaded'}), 400
+# @app.route('/api/analyze-log', methods=['POST'])
+# def analyze_log():
+#     """API endpoint for analyzing log file via POST."""
+#     if 'file' not in request.files:
+#         return jsonify({'error': 'No file uploaded'}), 400
 
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({'error': 'Empty filename'}), 400
+#     file = request.files['file']
+#     if file.filename == '':
+#         return jsonify({'error': 'Empty filename'}), 400
 
-    try:
-        user_df = pd.read_csv(file)
-    except Exception as e:
-        return jsonify({'error': f'Invalid CSV file: {str(e)}'}), 400
+#     try:
+#         user_df = pd.read_csv(file)
+#     except Exception as e:
+#         return jsonify({'error': f'Invalid CSV file: {str(e)}'}), 400
 
-    api_results = []
-    for _, row in user_df.iterrows():
-        row_data = row.to_dict()
-        prediction = random.choice(['normal', 'abnormal'])
-        row_data['prediction'] = prediction
+#     api_results = []
+#     for _, row in user_df.iterrows():
+#         row_data = row.to_dict()
+#         prediction = random.choice(['normal', 'abnormal'])
+#         row_data['prediction'] = prediction
 
-        if prediction == 'abnormal':
-            row_data['explanation'] = {
-                "src_bytes": "Unusually high source bytes",
-                "service": f"Service '{row_data['service']}' is often attacked",
-                "duration": "Duration significantly above normal range"
-            }
+#         if prediction == 'abnormal':
+#             row_data['explanation'] = {
+#                 "src_bytes": "Unusually high source bytes",
+#                 "service": f"Service '{row_data['service']}' is often attacked",
+#                 "duration": "Duration significantly above normal range"
+#             }
 
-        api_results.append(row_data)
+#         api_results.append(row_data)
 
-    return jsonify(api_results)
+#     return jsonify(api_results)
 
 # ============================
 # Helper functions
@@ -161,8 +161,8 @@ def attack_type():
 
 def service_distribution():
     """Return top 10 services and their distribution by attack type."""
-    top_services = df['service'].value_counts().nlargest(10).index.tolist()
-    filtered_df = df[df['service'].isin(top_services)]
+    top_services = og_df['service'].value_counts().nlargest(10).index.tolist()
+    filtered_df = og_df[og_df['service'].isin(top_services)]
     grouped = filtered_df.groupby(['service', 'binary_attack']).size().unstack(fill_value=0)
     grouped = grouped.reindex(columns=['normal', 'abnormal'], fill_value=0)
     grouped = grouped.loc[grouped.sum(axis=1).sort_values(ascending=False).index]
@@ -231,8 +231,8 @@ def threshold_flags(input_row):
 
 def explain_abnormal_log(input_row):
     """Combine all abnormal explanation analyses for a log entry."""
-    normal_df = df[df['binary_attack'] == 'normal']
-    abnormal_df = df[df['binary_attack'] == 'abnormal']
+    normal_df = og_df[og_df['binary_attack'] == 'normal']
+    abnormal_df = og_df[og_df['binary_attack'] == 'abnormal']
 
     explanations = {}
     explanations.update(numerical_feature_analysis(input_row, normal_df))
