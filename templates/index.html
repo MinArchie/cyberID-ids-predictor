@@ -427,6 +427,92 @@
             box-shadow: 0 5px 15px rgba(231, 76, 60, 0.3);
         }
 
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 16px 20px;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            min-width: 300px;
+            max-width: 400px;
+            transform: translateY(-100px);
+            opacity: 0;
+            transition: all 0.3s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .notification.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .notification.error {
+            background-color: rgba(114, 0, 38, 0.95);
+            border-left: 4px solid #ff0044;
+        }
+
+        .notification.success {
+            background-color: rgba(106, 153, 78, 0.95);
+            border-left: 4px solid #00d1b2;
+        }
+
+        .notification-content {
+            flex: 1;
+        }
+
+        .notification-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-size: 1rem;
+        }
+
+        .notification-message {
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .notification-close {
+            background: none;
+            border: none;
+            color: var(--text-color);
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 0;
+            margin-left: 10px;
+        }
+
+        .loading-indicator {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(10, 14, 23, 0.7);
+            z-index: 999;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 5px solid rgba(106, 153, 78, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--accent-green);
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
 
         @media (max-width: 500px) {
             .model-toggle-group {
@@ -707,8 +793,8 @@
 
             <div class="terminal-container">
                 <div class="terminal-text" id="terminal">
-                    > System ready for intrusion detection analysis
-                    > Upload a log file to begin...
+> System ready for intrusion detection analysis
+> Upload a log file to begin...
                 </div>
             </div>
         </div>
@@ -718,26 +804,149 @@
     <footer class="footer">
         <p>CyberID &copy; 2025 | Advanced Intrusion Detection System</p>
     </footer>
+
+    <div id="notification" class="notification">
+        <div class="notification-content">
+            <div class="notification-title" id="notification-title"></div>
+            <div class="notification-message" id="notification-message"></div>
+        </div>
+        <button class="notification-close" id="notification-close">&times;</button>
+    </div>
+
+    <!-- Loading indicator -->
+    <div class="loading-indicator" id="loading-indicator">
+        <div class="loading-spinner"></div>
+    </div>
+
     <script>
-        document.getElementById('logfile').addEventListener('change', function (e) {
-            const fileName = e.target.files[0] ? e.target.files[0].name : '';
-            document.getElementById('fileName').textContent = fileName ? `Selected: ${fileName}` : '';
-        });
-
-        document.getElementById('logUploadForm').addEventListener('submit', function (e) {
-            const file = document.getElementById('logfile').files[0];
+        document.addEventListener('DOMContentLoaded', function() {
+            // File input display
+            const logfileInput = document.getElementById('logfile');
+            const fileName = document.getElementById('fileName');
             const terminal = document.getElementById('terminal');
-
-            if (!file) {
+            const logUploadForm = document.getElementById('logUploadForm');
+            const loadingIndicator = document.getElementById('loading-indicator');
+            
+            // Notification elements
+            const notification = document.getElementById('notification');
+            const notificationTitle = document.getElementById('notification-title');
+            const notificationMessage = document.getElementById('notification-message');
+            const notificationClose = document.getElementById('notification-close');
+            
+            // Show selected file name
+            logfileInput.addEventListener('change', function(e) {
+                const selectedFile = e.target.files[0];
+                fileName.textContent = selectedFile ? `Selected: ${selectedFile.name}` : '';
+                
+                // Basic client-side validation
+                if (selectedFile) {
+                    // Check file extension
+                    const validExtensions = ['.csv', '.log', '.txt'];
+                    const ext = selectedFile.name.substring(selectedFile.name.lastIndexOf('.')).toLowerCase();
+                    
+                    if (!validExtensions.includes(ext)) {
+                        showNotification('Invalid File Type', 'Please upload a CSV, LOG, or TXT file.', 'error');
+                        logfileInput.value = '';
+                        fileName.textContent = '';
+                    }
+                    
+                    // Check if file is empty
+                    if (selectedFile.size === 0) {
+                        showNotification('Empty File', 'The selected file appears to be empty.', 'error');
+                        logfileInput.value = '';
+                        fileName.textContent = '';
+                    }
+                }
+            });
+            
+            // Form submission with AJAX
+            logUploadForm.addEventListener('submit', function(e) {
                 e.preventDefault();
-                terminal.innerHTML += '\n<span style="color: red;">> Error: No file selected. Please upload a log file.</span>';
-                return;
+                
+                const selectedFile = logfileInput.files[0];
+                if (!selectedFile) {
+                    showNotification('No File Selected', 'Please upload a log file to analyze.', 'error');
+                    terminal.innerHTML += '\n<span style="color: red;">> Error: No file selected. Please upload a log file.</span>';
+                    return;
+                }
+                
+                // Create FormData object for AJAX submission
+                const formData = new FormData();
+                formData.append('logfile', selectedFile);
+                formData.append('model_choice', document.querySelector('input[name="model_choice"]:checked').value);
+                
+                // Update terminal
+                terminal.innerHTML += `\n> File "${selectedFile.name}" received...`;
+                terminal.innerHTML += `\n> Processing log data...`;
+                
+                // Show loading indicator
+                loadingIndicator.style.display = 'flex';
+                
+                // AJAX request
+                fetch('/analyze', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        // Convert non-2xx HTTP responses to JSON for error details
+                        return response.text().then(text => {
+                            try {
+                                return JSON.parse(text);
+                            } catch (e) {
+                                // If not JSON, return plain text
+                                return { error: text };
+                            }
+                        });
+                    }
+                    return response.text();
+                })
+                .then(data => {
+                    loadingIndicator.style.display = 'none';
+                    
+                    // Check if data contains error
+                    if (typeof data === 'object' && data.error) {
+                        // Handle error response
+                        showNotification('Analysis Error', data.error, 'error');
+                        terminal.innerHTML += `\n<span style="color: red;">> Error: ${data.error}</span>`;
+                        return;
+                    }
+                    
+                    // On success - either redirect to results page or update UI
+                    terminal.innerHTML += `\n> Analysis complete!`;
+                    terminal.innerHTML += `\n> Redirecting to results...`;
+                    
+                    // For HTML response, we need to refresh the page with the new content
+                    document.open();
+                    document.write(data);
+                    document.close();
+                })
+                .catch(error => {
+                    loadingIndicator.style.display = 'none';
+                    showNotification('System Error', 'An unexpected error occurred. Please try again.', 'error');
+                    terminal.innerHTML += `\n<span style="color: red;">> System error: ${error.message}</span>`;
+                    console.error('Error:', error);
+                });
+            });
+            
+            // Notification functionality
+            function showNotification(title, message, type) {
+                notificationTitle.textContent = title;
+                notificationMessage.textContent = message;
+                notification.className = `notification ${type}`;
+                notification.classList.add('show');
+                
+                // Auto-hide after 5 seconds
+                setTimeout(() => {
+                    hideNotification();
+                }, 5000);
             }
-
-            terminal.innerHTML += `\n> File "${file.name}" received...`;
-            terminal.innerHTML += `\n> Processing log data...`;
-            terminal.innerHTML += `\n> Applying feature scaling...`;
-            terminal.innerHTML += `\n> Running ML prediction models (SVM, DL)...`;
+            
+            function hideNotification() {
+                notification.classList.remove('show');
+            }
+            
+            notificationClose.addEventListener('click', hideNotification);
         });
     </script>
 
