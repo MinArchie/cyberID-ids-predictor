@@ -271,6 +271,180 @@
                 margin-bottom: 2rem;
             }
         }
+
+
+        .model-selection-container {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 2rem;
+        }
+
+        .model-toggle-group {
+            display: flex;
+            flex-direction: row;
+            gap: 1rem;
+            width: 100%;
+            max-width: 550px;
+            margin-top: 0.75rem;
+        }
+
+        .model-toggle-option {
+            position: relative;
+            width: 100%;
+        }
+
+        .model-toggle-option input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .model-toggle-label {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            background-color: var(--card-bg);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .model-toggle-label:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: radial-gradient(circle at 50% 50%, currentColor 1px, transparent 1px);
+            background-size: 15px 15px;
+            opacity: 0.1;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .model-toggle-label.recommended:before {
+            color: var(--accent-green);
+        }
+
+        .model-toggle-label.secondary:before {
+            color: #e74c3c;
+        }
+
+        .model-toggle-circle {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid #808080;
+            margin-right: 1rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: transparent;
+            position: relative;
+            z-index: 1;
+            flex-shrink: 0;
+        }
+
+        .model-toggle-text {
+            display: flex;
+            flex-direction: column;
+            z-index: 1;
+        }
+
+        .model-name {
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .model-type {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+
+        .model-toggle-label.recommended .model-name {
+            color: var(--accent-green);
+        }
+
+        .model-toggle-label.recommended .model-type {
+            color: var(--accent-green);
+        }
+
+        /* Secondary model styling */
+        .model-toggle-label.secondary .model-name {
+            color: #e74c3c;
+        }
+
+        .model-toggle-label.secondary .model-type {
+            color: #e74c3c;
+        }
+
+
+        input[type="radio"]:checked+.model-toggle-label {
+            border-color: currentColor;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+        }
+
+        input[type="radio"]:checked+.model-toggle-label.recommended {
+            border-color: var(--accent-green);
+        }
+
+        input[type="radio"]:checked+.model-toggle-label.secondary {
+            border-color: #e74c3c;
+        }
+
+        input[type="radio"]:checked+.model-toggle-label .model-toggle-circle {
+            border-color: currentColor;
+        }
+
+        input[type="radio"]:checked+.model-toggle-label.recommended .model-toggle-circle {
+            border-color: var(--accent-green);
+            background-color: var(--accent-green);
+        }
+
+        input[type="radio"]:checked+.model-toggle-label.secondary .model-toggle-circle {
+            border-color: #e74c3c;
+            background-color: #e74c3c;
+        }
+
+
+        .model-toggle-label:hover {
+            transform: translateY(-2px);
+        }
+
+        .model-toggle-label.recommended:hover {
+            border-color: var(--accent-green);
+            box-shadow: 0 5px 15px rgba(106, 153, 78, 0.3);
+        }
+
+        .model-toggle-label.secondary:hover {
+            border-color: #e74c3c;
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.3);
+        }
+
+
+        @media (max-width: 500px) {
+            .model-toggle-group {
+                gap: 0.75rem;
+            }
+
+            .model-toggle-label {
+                padding: 0.75rem;
+            }
+
+            .model-name {
+                font-size: 1rem;
+            }
+
+            .model-type {
+                font-size: 0.8rem;
+            }
+        }
     </style>
 </head>
 
@@ -475,7 +649,7 @@
                 <div class="feature-card-icon">🧠</div>
                 <h2 class="feature-card-title">ML-Powered</h2>
                 <p class="feature-card-description">
-                    Using Support Vector Machines and Random Forest algorithms to
+                    Using Support Vector Machines and Deep Learning algorithms to
                     achieve high accuracy in threat detection.
                 </p>
             </div>
@@ -498,11 +672,33 @@
                     <div class="file-input-text">Drag & drop your log file here or click to browse</div>
                     <div class="file-name" id="fileName"></div>
                 </div>
-                <label for="model_choice">Choose a model:</label>
-                <select name="model_choice" id="model_choice" required>
-                    <option value="ml">Machine Learning (SVM)</option>
-                    <option value="dl">Deep Learning (Neural Net)</option>
-                </select>
+
+                <label class="form-label">Choose a model:</label>
+
+                <div class="form-group model-selection-container">
+                    <div class="model-toggle-group">
+                        <div class="model-toggle-option">
+                            <input type="radio" id="model_dl" name="model_choice" value="dl" checked>
+                            <label for="model_dl" class="model-toggle-label recommended">
+                                <div class="model-toggle-circle"></div>
+                                <div class="model-toggle-text">
+                                    <span class="model-name">IntrusionNet</span>
+                                    <span class="model-type">(Recommended)</span>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="model-toggle-option">
+                            <input type="radio" id="model_ml" name="model_choice" value="ml">
+                            <label for="model_ml" class="model-toggle-label secondary">
+                                <div class="model-toggle-circle"></div>
+                                <div class="model-toggle-text">
+                                    <span class="model-name">SVM</span>
+                                    <span class="model-type">(Secondary Model)</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
 
                 <div class="form-group">
                     <button type="submit" class="form-button">Analyze Network Traffic</button>
@@ -510,10 +706,13 @@
             </form>
 
             <div class="terminal-container">
-                <div class="terminal-text" id="terminal">> System ready for intrusion detection analysis<br>> Upload a log file to begin...
+                <div class="terminal-text" id="terminal">
+                    > System ready for intrusion detection analysis
+                    > Upload a log file to begin...
                 </div>
             </div>
         </div>
+
     </main>
 
     <footer class="footer">
@@ -531,7 +730,7 @@
 
             if (!file) {
                 e.preventDefault();
-                terminal.innerHTML += '\n> Error: No file selected. Please upload a log file.';
+                terminal.innerHTML += '\n<span style="color: red;">> Error: No file selected. Please upload a log file.</span>';
                 return;
             }
 
