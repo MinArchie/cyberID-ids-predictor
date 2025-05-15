@@ -7,6 +7,7 @@ from flask import Flask, render_template, request, redirect, url_for, jsonify, s
 from sklearn.preprocessing import MinMaxScaler
 import torch
 from torch import nn
+import pennylane as qml
 
 app = Flask(__name__)
 app.secret_key = "your_secure_secret_key_here"
@@ -81,8 +82,12 @@ def results():
     try:
         if model_choice == 'ml':
             return handle_ml_model(file_path, filename)
-        if model_choice == 'dl':
+        elif model_choice == 'dl':
             return handle_dl_model(file_path, filename)
+        elif model_choice == 'qml':
+            return handle_qml_model(file_path, filename)
+        elif model_choice == 'qnn':
+            return handle_qnn_model(file_path, filename)
 
         return redirect(url_for('index'))
     except ValueError as val_err:
@@ -150,6 +155,130 @@ def handle_dl_model(file_path, filename):
         row_data = row.to_dict()
         if row_data['binary_attack'] == 'abnormal':
             row_data['explanation'] = explain_abnormal_log(row)
+        all_results.append(row_data)
+
+    df = pd.DataFrame(all_results)
+    return render_template('results.html', filename=filename, results=all_results)
+
+
+def handle_qml_model(file_path, filename):
+    """Handle prediction using QML model."""
+    global df
+    df = pd.DataFrame()
+    
+    user_df = pd.read_csv(file_path)
+    features_to_use = og_df.drop(columns=['binary_attack', 'level'], errors='ignore').columns.tolist()
+    user_df_filtered = user_df[features_to_use].copy()
+
+    preprocessor = joblib.load("model/qml_preprocessor.pkl")
+    pca = joblib.load("model/qml_pca.pkl")   
+
+    x_log_processed = preprocessor.transform(user_df_filtered)
+    x_log_processed = x_log_processed.toarray() if hasattr(x_log_processed, "toarray") else x_log_processed
+    x_log_pca = pca.transform(x_log_processed)
+    x_log_tensor = torch.tensor(x_log_pca, dtype=torch.float32)
+
+    class QMLNet(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.classical = nn.Linear(2, 2)
+            self.q_params = nn.Parameter(torch.zeros((2, 2)))  # shape: (layers, qubits)
+
+        def forward(self, x):
+            x = self.classical(x)
+            outputs = []
+            for i in range(x.shape[0]):
+                out = quantum_circuit(x[i], self.q_params)
+                outputs.append(out)
+            return torch.stack(outputs).unsqueeze(1)
+
+    dev = qml.device("default.qubit", wires=2)
+
+    @qml.qnode(dev, interface="torch")
+    def quantum_circuit(inputs, weights):
+        qml.templates.AngleEmbedding(inputs, wires=range(2))
+        qml.templates.BasicEntanglerLayers(weights, wires=range(2))
+        return qml.expval(qml.PauliZ(0))
+
+    model = QMLNet()
+    model.load_state_dict(torch.load("model/qml_model.pth"))
+    model.q_params = torch.load("model/quantum_params.pth")
+    model.eval()
+
+    with torch.no_grad():
+        predictions = torch.sigmoid(model(x_log_tensor)).squeeze()
+        predicted_labels = (predictions >= 0.5).int().numpy()
+        mapped_labels = ["abnormal" if p == 1 else "normal" for p in predicted_labels]
+
+    user_df['binary_attack'] = mapped_labels
+    all_results = []
+    for idx, row in user_df.iterrows():
+        row_data = row.to_dict()
+        if row_data['binary_attack'] == 'abnormal':
+            row_data['explanation'] = explain_abnormal_log(row)
+        all_results.append(row_data)
+
+    df = pd.DataFrame(all_results)
+    return render_template('results.html', filename=filename, results=all_results)
+
+
+def handle_qnn_model(file_path, filename):
+    """Handle prediction using QNN model."""
+    global df
+    df = pd.DataFrame()
+
+    user_df = pd.read_csv(file_path)
+    
+    features_to_use = og_df.drop(columns=['binary_attack', 'level'], errors='ignore').columns.tolist()
+    user_df_filtered = user_df[features_to_use].copy()
+
+    preprocessor = joblib.load("model/qnn_preprocessor.pkl")
+    pca = joblib.load("model/qnn_pca.pkl")
+
+    x_log_processed = preprocessor.transform(user_df_filtered)
+    x_log_processed = x_log_processed.toarray() if hasattr(x_log_processed, "toarray") else x_log_processed
+    x_log_pca = pca.transform(x_log_processed)
+    x_log_tensor = torch.tensor(x_log_pca, dtype=torch.float32)
+
+    n_qubits = 2
+    dev = qml.device("default.qubit", wires=n_qubits)
+
+    @qml.qnode(dev, interface="torch")
+    def quantum_circuit(inputs, weights):
+        qml.templates.AngleEmbedding(inputs, wires=range(n_qubits))
+        qml.templates.BasicEntanglerLayers(weights, wires=range(n_qubits))
+        return qml.expval(qml.PauliZ(0))
+
+    class QNN(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.classical = nn.Linear(2, 2)
+            self.q_params = nn.Parameter(torch.zeros((2, n_qubits)))
+
+        def forward(self, x):
+            x = self.classical(x)
+            outputs = []
+            for i in range(x.shape[0]):
+                out = quantum_circuit(x[i], self.q_params)
+                outputs.append(out)
+            return torch.stack(outputs).unsqueeze(1)
+
+    model = QNN()
+    model.load_state_dict(torch.load("model/qnn_model.pth"))
+    model.q_params = torch.load("model/qnn_quantum_params.pth")
+    model.eval()
+
+    with torch.no_grad():
+        predictions = torch.sigmoid(model(x_log_tensor)).squeeze()
+        predicted_labels = (predictions >= 0.5).int().numpy()
+        mapped_labels = ["abnormal" if p == 1 else "normal" for p in predicted_labels]
+
+    user_df['binary_attack'] = mapped_labels
+    all_results = []
+    for idx, row in user_df.iterrows():
+        row_data = row.to_dict()
+        # if row_data['binary_attack'] == 'abnormal':
+        #     row_data['explanation'] = explain_abnormal_log(row)
         all_results.append(row_data)
 
     df = pd.DataFrame(all_results)

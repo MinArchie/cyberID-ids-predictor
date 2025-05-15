@@ -722,7 +722,7 @@
                             </label>
                         </div>
                         <div class="model-toggle-option">
-                            <input type="radio" id="model_svm" name="model_choice" value="svm">
+                            <input type="radio" id="model_svm" name="model_choice" value="ml">
                             <label for="model_svm" class="model-toggle-label">
                                 <div class="model-toggle-circle"></div>
                                 <div class="model-toggle-text">
@@ -732,22 +732,22 @@
                             </label>
                         </div>
                         <div class="model-toggle-option">
-                            <input type="radio" id="model_qml" name="model_choice" value="qml">
-                            <label for="model_qml" class="model-toggle-label">
-                                <div class="model-toggle-circle"></div>
-                                <div class="model-toggle-text">
-                                    <span class="model-name">QML</span>
-                                    <span class="model-type">(For Large Data)</span>
-                                </div>
-                            </label>
-                        </div>
-                        <div class="model-toggle-option">
                             <input type="radio" id="model_qnn" name="model_choice" value="qnn">
                             <label for="model_qnn" class="model-toggle-label">
                                 <div class="model-toggle-circle"></div>
                                 <div class="model-toggle-text">
                                     <span class="model-name">QNN</span>
-                                    <span class="model-type">(Secondary Model for Large Data)</span>
+                                    <span class="model-type">(For Large Data)</span>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="model-toggle-option">
+                            <input type="radio" id="model_qml" name="model_choice" value="qml">
+                            <label for="model_qml" class="model-toggle-label">
+                                <div class="model-toggle-circle"></div>
+                                <div class="model-toggle-text">
+                                    <span class="model-name">QML</span>
+                                    <span class="model-type">(Secondary Model For Large Data)</span>
                                 </div>
                             </label>
                         </div>
@@ -857,12 +857,10 @@
                 })
                 .then(response => {
                     if (!response.ok) {
-                        // Convert non-2xx HTTP responses to JSON for error details
                         return response.text().then(text => {
                             try {
                                 return JSON.parse(text);
                             } catch (e) {
-                                // If not JSON, return plain text
                                 return { error: text };
                             }
                         });
@@ -880,11 +878,9 @@
                         return;
                     }
                     
-                    // On success - either redirect to results page or update UI
                     terminal.innerHTML += `\n> Analysis complete!`;
                     terminal.innerHTML += `\n> Redirecting to results...`;
                     
-                    // For HTML response, we need to refresh the page with the new content
                     document.open();
                     document.write(data);
                     document.close();
